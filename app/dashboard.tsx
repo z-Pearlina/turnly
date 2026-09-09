@@ -212,10 +212,11 @@ function TabItem({
   const color = active ? Colors.primary : Colors.secondary;
   return (
     <View style={styles.tabItem}>
-      <Ionicons name={active ? icon : icon} size={24} color={color} />
+      <Ionicons name={icon} size={24} color={color} />
       <Text style={[styles.tabLabel, active && styles.tabLabelActive]}>
         {label}
       </Text>
+      {active && <View style={styles.tabDot} />}
     </View>
   );
 }
@@ -473,5 +474,12 @@ const styles = StyleSheet.create({
   tabLabelActive: {
     color: Colors.primary,
     fontFamily: "Tajawal_700Bold",
+  },
+  tabDot: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: Colors.primary,
+    marginTop: 1,
   },
 });
