@@ -2,7 +2,7 @@
 
 <br />
 
-# Turnly — دورك
+<h1 align="center">Turnly — دورك</h1>
 
 <p align="center">انتظر دورك أينما كنت &nbsp;·&nbsp; Skip the wait. Track your turn from anywhere.</p>
 
