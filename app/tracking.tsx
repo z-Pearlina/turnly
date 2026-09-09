@@ -1,14 +1,21 @@
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  ScrollView,
+  Animated,
+} from "react-native";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import LottieView from "lottie-react-native";
 import { Colors } from "../constants/colors";
 import { useQueue } from "../context/QueueContext";
+import { NOTIFY_THRESHOLD } from "../utils/notifications";
 
 const MINS_PER_PERSON = 3;
-const TICK_MS = 3000; // advance queue every 3 s (demo speed)
-const NOTIFY_THRESHOLD = 5; // fire notification when ≤5 ahead
+const TICK_MS = 3000;
 
 function formatWait(minutes: number): { display: string; label: string } {
   if (minutes <= 0) return { display: "0:00", label: "لحظات" };
@@ -26,9 +33,41 @@ function formatWait(minutes: number): { display: string; label: string } {
 }
 
 export default function TrackingScreen() {
+  const insets = useSafeAreaInsets();
   const { selectedOffice, myTicketNumber, nowServing, setNowServing } = useQueue();
 
-  // ── Live queue simulation ──
+  const [notifEnabled, setNotifEnabled] = useState(false);
+  const [notifConfirmed, setNotifConfirmed] = useState(false);
+  const [bannerText, setBannerText] = useState("");
+  const [bannerVisible, setBannerVisible] = useState(false);
+  const hasNotified = useRef(false);
+
+  const bannerY = useRef(new Animated.Value(-160)).current;
+
+  function showBanner(text: string) {
+    setBannerText(text);
+    setBannerVisible(true);
+    bannerY.setValue(-160); // reset before animating in
+    Animated.sequence([
+      Animated.spring(bannerY, {
+        toValue: 0,
+        useNativeDriver: true,
+        tension: 60,
+        friction: 10,
+      }),
+      Animated.delay(4000),
+      Animated.timing(bannerY, {
+        toValue: -160,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      // Remove the element entirely after it slides back up
+      setBannerVisible(false);
+    });
+  }
+
+  // Live queue simulation
   useEffect(() => {
     const limit = myTicketNumber ?? Infinity;
     const timer = setInterval(() => {
@@ -37,28 +76,60 @@ export default function TrackingScreen() {
     return () => clearInterval(timer);
   }, [myTicketNumber]);
 
-  // ── Computed values ──
+  // Fire in-app banner once when ahead drops to threshold
+  useEffect(() => {
+    const myNum = myTicketNumber ?? 0;
+    const ahead = Math.max(0, myNum - nowServing);
+
+    if (
+      notifEnabled &&
+      !hasNotified.current &&
+      myNum > 0 &&
+      ahead <= NOTIFY_THRESHOLD &&
+      ahead > 0
+    ) {
+      hasNotified.current = true;
+      showBanner(`دورك اقترب! بقيت ${ahead} أرقام فقط — يُنصح بالعودة الآن`);
+    }
+  }, [nowServing, myTicketNumber, notifEnabled]);
+
+  function handleNotifButton() {
+    if (notifConfirmed) return;
+    setNotifEnabled(true);
+    setNotifConfirmed(true);
+    showBanner("✓ سيتم تنبيهك عند اقتراب دورك");
+  }
+
   const myNum = myTicketNumber ?? 0;
   const ahead = Math.max(0, myNum - nowServing);
   const isMyTurn = myNum > 0 && nowServing >= myNum;
   const waitMinutes = ahead * MINS_PER_PERSON;
   const { display: timeDisplay, label: timeLabel } = formatWait(waitMinutes);
-  // Progress: how far the queue has advanced toward my number
   const progress = myNum > 0 ? Math.min(1, nowServing / myNum) : 0;
 
   return (
     <SafeAreaView style={styles.safe}>
 
-      {/* ── Header ──
-          RTL flex-row: first → RIGHT, last → LEFT
-          [officeSection(RIGHT), menuIcon(LEFT)]
-      */}
+      {/* In-app notification banner — only mounted while visible */}
+      {bannerVisible && (
+        <Animated.View
+          style={[
+            styles.banner,
+            { paddingTop: insets.top + 12, transform: [{ translateY: bannerY }] },
+          ]}
+          pointerEvents="none"
+        >
+          <Ionicons name="notifications" size={20} color="#fff" />
+          <Text style={styles.bannerText}>{bannerText}</Text>
+        </Animated.View>
+      )}
+
       <View style={styles.header}>
         <View style={styles.officeSection}>
+          <Ionicons name="location-outline" size={16} color={Colors.secondary} />
           <Text style={styles.officeName} numberOfLines={1}>
             {selectedOffice?.name ?? "مكتب غير محدد"}
           </Text>
-          <Ionicons name="location-outline" size={16} color={Colors.secondary} />
         </View>
       </View>
 
@@ -67,12 +138,7 @@ export default function TrackingScreen() {
         showsVerticalScrollIndicator={false}
       >
 
-        {/* ── Hero card ──
-            justifyContent:"space-between" puts top group at top,
-            progress bar at bottom — no spacer needed
-        */}
         <View style={styles.heroCard}>
-
           <Text style={styles.heroSubtitle}>
             {isMyTurn ? "🎉 حان دورك الآن!" : "دورك القادم بعد"}
           </Text>
@@ -85,7 +151,6 @@ export default function TrackingScreen() {
           <Text style={styles.timeDisplay}>{isMyTurn ? "0:00" : timeDisplay}</Text>
           <Text style={styles.timeLabel}>{isMyTurn ? "دورك الآن!" : timeLabel}</Text>
 
-          {/* Progress bar sits directly below the label — no gap */}
           <View style={styles.progressTrack}>
             <View
               style={[
@@ -94,16 +159,10 @@ export default function TrackingScreen() {
               ]}
             />
           </View>
-
         </View>
 
-        {/* ── Stats row ──
-            RTL flex-row: first → RIGHT ("رقمك"), last → LEFT ("الرقم الحالي")
-        */}
         <View style={styles.statsRow}>
-          {/* رقمك (RIGHT) */}
           <View style={styles.statCard}>
-            {/* Card header RTL: [label(RIGHT), icon(LEFT)] */}
             <View style={styles.statHeader}>
               <Text style={styles.statLabel}>رقمك</Text>
               <Ionicons name="ticket-outline" size={20} color={Colors.accent} />
@@ -113,7 +172,6 @@ export default function TrackingScreen() {
             </Text>
           </View>
 
-          {/* الرقم الحالي (LEFT) */}
           <View style={styles.statCard}>
             <View style={styles.statHeader}>
               <Text style={styles.statLabel}>الرقم الحالي</Text>
@@ -125,9 +183,6 @@ export default function TrackingScreen() {
           </View>
         </View>
 
-        {/* ── People ahead ──
-            RTL flex-row: first → RIGHT (text), last → LEFT (icon)
-        */}
         <View style={styles.aheadRow}>
           <Text style={styles.aheadText}>
             {isMyTurn ? "حان دورك!" : `أمامك ${ahead} شخصاً`}
@@ -135,12 +190,22 @@ export default function TrackingScreen() {
           <Ionicons name="people-outline" size={22} color={Colors.secondary} />
         </View>
 
-        {/* ── Notification button ──
-            RTL flex-row: first → RIGHT (text), last → LEFT (bell)
-        */}
-        <TouchableOpacity style={styles.notifBtn} activeOpacity={0.82}>
-          <Text style={styles.notifLabel}>تتنبّه قبل دوري</Text>
-          <Ionicons name="notifications-outline" size={22} color="#fff" />
+        <TouchableOpacity
+          style={[styles.notifBtn, notifConfirmed && styles.notifBtnConfirmed]}
+          activeOpacity={notifConfirmed ? 1 : 0.82}
+          onPress={handleNotifButton}
+        >
+          {notifConfirmed ? (
+            <>
+              <Text style={styles.notifLabel}>سيتم تنبيهك قبل دورك ✓</Text>
+              <Ionicons name="notifications" size={22} color="#fff" />
+            </>
+          ) : (
+            <>
+              <Text style={styles.notifLabel}>نبّهني قبل دوري</Text>
+              <Ionicons name="notifications-outline" size={22} color="#fff" />
+            </>
+          )}
         </TouchableOpacity>
 
       </ScrollView>
@@ -154,7 +219,35 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.background,
   },
 
-  // ── Header ──
+  // In-app banner — floats below the status bar with side margins
+  banner: {
+    position: "absolute",
+    top: 0,
+    left: 16,
+    right: 16,
+    zIndex: 99,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+    backgroundColor: Colors.primary,
+    paddingBottom: 16,
+    paddingHorizontal: 20,
+    borderRadius: 18,
+    shadowColor: Colors.primary,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 10,
+  },
+  bannerText: {
+    fontFamily: "Tajawal_700Bold",
+    fontSize: 14,
+    color: "#fff",
+    flexShrink: 1,
+    textAlign: "center",
+  },
+
   header: {
     flexDirection: "row",
     alignItems: "center",
@@ -175,15 +268,14 @@ const styles = StyleSheet.create({
     color: Colors.charcoal,
     flexShrink: 1,
   },
-  // ── Scroll ──
+
   scroll: {
-    flexGrow: 1,          // stretches container to full screen height
+    flexGrow: 1,
     paddingHorizontal: 20,
     paddingBottom: 24,
     gap: 14,
   },
 
-  // ── Hero card ──
   heroCard: {
     flex: 1,
     minHeight: 240,
@@ -193,7 +285,7 @@ const styles = StyleSheet.create({
     paddingTop: 20,
     paddingBottom: 20,
     alignItems: "center",
-    justifyContent: "center", // whole content block centered vertically
+    justifyContent: "center",
   },
   lottie: {
     width: 170,
@@ -235,7 +327,6 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
 
-  // ── Stats row ──
   statsRow: {
     flexDirection: "row",
     gap: 12,
@@ -268,7 +359,6 @@ const styles = StyleSheet.create({
     lineHeight: 52,
   },
 
-  // ── People ahead ──
   aheadRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -281,7 +371,6 @@ const styles = StyleSheet.create({
     color: Colors.secondary,
   },
 
-  // ── Notification button ──
   notifBtn: {
     flexDirection: "row",
     alignItems: "center",
@@ -295,7 +384,9 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.28,
     shadowRadius: 10,
     elevation: 5,
-    marginTop: 0,
+  },
+  notifBtnConfirmed: {
+    backgroundColor: Colors.accent,
   },
   notifLabel: {
     fontFamily: "Tajawal_700Bold",

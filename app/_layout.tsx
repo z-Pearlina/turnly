@@ -8,6 +8,7 @@ import {
 import * as SplashScreen from "expo-splash-screen";
 import { useEffect } from "react";
 import { I18nManager } from "react-native";
+import { StatusBar } from "expo-status-bar";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { QueueProvider } from "../context/QueueContext";
 
@@ -34,6 +35,7 @@ export default function RootLayout() {
 
   return (
     <SafeAreaProvider>
+      <StatusBar hidden />
       <QueueProvider>
         <Stack screenOptions={{ headerShown: false }} />
       </QueueProvider>
