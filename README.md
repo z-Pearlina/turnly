@@ -6,7 +6,7 @@
 
 <p align="center">انتظر دورك أينما كنت &nbsp;·&nbsp; Skip the wait. Track your turn from anywhere.</p>
 
-<p>
+<p align="center">
   <img src="https://img.shields.io/badge/Expo-SDK%2057-000020?style=flat&logo=expo&logoColor=white" />
   <img src="https://img.shields.io/badge/React%20Native-0.86-61DAFB?style=flat&logo=react&logoColor=white" />
   <img src="https://img.shields.io/badge/TypeScript-5.x-3178C6?style=flat&logo=typescript&logoColor=white" />
