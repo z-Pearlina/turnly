@@ -4,7 +4,6 @@ import {
   StyleSheet,
   TouchableOpacity,
   TextInput,
-  KeyboardAvoidingView,
   ScrollView,
   Platform,
 } from "react-native";
@@ -36,40 +35,28 @@ export default function TicketScreen() {
         <View style={styles.headerBtn} />
       </View>
 
-      {/*
-        KAV + ScrollView pattern — works on all Android/iOS sizes:
-        - KAV behavior="padding" shrinks the available area when keyboard opens
-        - ScrollView with flexGrow:1 + justifyContent:"space-between" keeps
-          the button pinned to the bottom, and lets the user scroll to it
-          on very small screens
-      */}
-      <KeyboardAvoidingView
+      <ScrollView
         style={{ flex: 1 }}
-        behavior="padding"
-        keyboardVerticalOffset={Platform.OS === "android" ? 20 : 0}
+        contentContainerStyle={styles.scroll}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
       >
-        <ScrollView
-          style={{ flex: 1 }}
-          contentContainerStyle={styles.scroll}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-        >
 
           {/* ── Top content group ── */}
           <View>
 
             {/* Confirmation banner
-                RTL: [checkCircle(→RIGHT), textBlock(→LEFT)]
+                RTL: text FIRST = visual RIGHT, checkmark LAST = visual LEFT
             */}
             <View style={styles.banner}>
-              <View style={styles.checkCircle}>
-                <Ionicons name="checkmark" size={18} color="#fff" />
-              </View>
               <View style={styles.bannerText}>
                 <Text style={styles.bannerSmall}>تم التعرّف على المكتب</Text>
                 <Text style={styles.bannerTitle}>
                   {selectedOffice?.name ?? "مكتب غير محدد"}
                 </Text>
+              </View>
+              <View style={styles.checkCircle}>
+                <Ionicons name="checkmark" size={18} color="#fff" />
               </View>
             </View>
 
@@ -124,8 +111,7 @@ export default function TicketScreen() {
             <Ionicons name="arrow-back" size={20} color="#fff" />
           </TouchableOpacity>
 
-        </ScrollView>
-      </KeyboardAvoidingView>
+      </ScrollView>
 
     </SafeAreaView>
   );
@@ -189,7 +175,7 @@ const styles = StyleSheet.create({
   },
   bannerText: {
     flex: 1,
-    alignItems: "flex-end",
+    alignItems: "flex-start", // flex-start = visual RIGHT in RTL
   },
   bannerSmall: {
     fontFamily: "Tajawal_400Regular",

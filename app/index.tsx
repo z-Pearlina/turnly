@@ -51,6 +51,15 @@ export default function WelcomeScreen() {
           />
           <Text style={styles.appName}>دورك</Text>
           <Text style={styles.tagline}>انتظر دورك أينما كنت</Text>
+
+          {/* Discreet employee entry — small gear, invisible to casual users */}
+          <TouchableOpacity
+            style={styles.employeeEntry}
+            onPress={() => router.push("/dashboard")}
+            activeOpacity={0.5}
+          >
+            <Ionicons name="settings-outline" size={16} color={Colors.border} />
+          </TouchableOpacity>
         </View>
 
         {/* ── Middle: illustration ── */}
@@ -152,6 +161,11 @@ const styles = StyleSheet.create({
   top: {
     alignItems: "center",
     paddingTop: height < 700 ? 16 : 24,
+  },
+  employeeEntry: {
+    marginTop: 12,
+    padding: 6,
+    opacity: 0.4,
   },
   logoImg: {
     width: height < 700 ? 92 : 110,

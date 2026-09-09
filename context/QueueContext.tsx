@@ -18,9 +18,11 @@ type QueueContextType = {
   selectedOffice: Office | null;
   myTicketNumber: number | null;
   nowServing: number;
+  manualMode: boolean;
   setSelectedOffice: (office: Office) => void;
   setMyTicketNumber: (n: number) => void;
-  setNowServing: (n: number) => void;
+  setNowServing: (n: number | ((prev: number) => number)) => void;
+  setManualMode: (v: boolean) => void;
   incrementNowServing: () => void;
 };
 
@@ -30,6 +32,8 @@ export function QueueProvider({ children }: { children: ReactNode }) {
   const [selectedOffice, setSelectedOffice] = useState<Office | null>(null);
   const [myTicketNumber, setMyTicketNumber] = useState<number | null>(null);
   const [nowServing, setNowServing] = useState(60);
+  // When true the employee dashboard is in control — auto-simulation pauses
+  const [manualMode, setManualMode] = useState(false);
 
   function incrementNowServing() {
     setNowServing((n) => n + 1);
@@ -42,9 +46,11 @@ export function QueueProvider({ children }: { children: ReactNode }) {
         selectedOffice,
         myTicketNumber,
         nowServing,
+        manualMode,
         setSelectedOffice,
         setMyTicketNumber,
         setNowServing,
+        setManualMode,
         incrementNowServing,
       }}
     >

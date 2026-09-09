@@ -6,7 +6,7 @@ import {
   ScrollView,
   Animated,
 } from "react-native";
-import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useEffect, useRef, useState } from "react";
 import LottieView from "lottie-react-native";
@@ -33,8 +33,7 @@ function formatWait(minutes: number): { display: string; label: string } {
 }
 
 export default function TrackingScreen() {
-  const insets = useSafeAreaInsets();
-  const { selectedOffice, myTicketNumber, nowServing, setNowServing } = useQueue();
+  const { selectedOffice, myTicketNumber, nowServing, setNowServing, manualMode } = useQueue();
 
   const [notifEnabled, setNotifEnabled] = useState(false);
   const [notifConfirmed, setNotifConfirmed] = useState(false);
@@ -67,14 +66,15 @@ export default function TrackingScreen() {
     });
   }
 
-  // Live queue simulation
+  // Live queue simulation — paused when employee dashboard takes manual control
   useEffect(() => {
+    if (manualMode) return;
     const limit = myTicketNumber ?? Infinity;
     const timer = setInterval(() => {
       setNowServing((prev) => (prev >= limit ? prev : prev + 1));
     }, TICK_MS);
     return () => clearInterval(timer);
-  }, [myTicketNumber]);
+  }, [myTicketNumber, manualMode]);
 
   // Fire in-app banner once when ahead drops to threshold
   useEffect(() => {
@@ -115,7 +115,7 @@ export default function TrackingScreen() {
         <Animated.View
           style={[
             styles.banner,
-            { paddingTop: insets.top + 12, transform: [{ translateY: bannerY }] },
+            { transform: [{ translateY: bannerY }] },
           ]}
           pointerEvents="none"
         >
@@ -219,10 +219,10 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.background,
   },
 
-  // In-app banner — floats below the status bar with side margins
+  // In-app banner — floats with a small gap from the top edge
   banner: {
     position: "absolute",
-    top: 0,
+    top: 44,
     left: 16,
     right: 16,
     zIndex: 99,
@@ -231,8 +231,8 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 10,
     backgroundColor: Colors.primary,
-    paddingBottom: 16,
-    paddingHorizontal: 20,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
     borderRadius: 18,
     shadowColor: Colors.primary,
     shadowOffset: { width: 0, height: 6 },
