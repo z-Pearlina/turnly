@@ -4,7 +4,7 @@
 
 # Turnly — دورك
 
-### انتظر دورك أينما كنت &nbsp;·&nbsp; Skip the wait. Track your turn from anywhere.
+<p align="center">انتظر دورك أينما كنت &nbsp;·&nbsp; Skip the wait. Track your turn from anywhere.</p>
 
 <p>
   <img src="https://img.shields.io/badge/Expo-SDK%2057-000020?style=flat&logo=expo&logoColor=white" />
